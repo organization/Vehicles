@@ -17,6 +17,7 @@ namespace JaxkDev\Vehicles;
 use JaxkDev\Vehicles\Vehicle\Vehicle;
 use pocketmine\command\CommandSender;
 use pocketmine\command\ConsoleCommandSender;
+use pocketmine\player\Player;
 use pocketmine\utils\TextFormat as C;
 
 class CommandHandler {
@@ -89,7 +90,7 @@ class CommandHandler {
 				/** @var null|Vehicle $entity */
 				$entity = null;
 				if ($this->plugin->vehicleFactory->isRegistered($args[0])) {
-					$entity = $this->plugin->vehicleFactory->spawnVehicle($args[0], $sender->getLevel(), $sender->asVector3());
+					$entity = $this->plugin->vehicleFactory->spawnVehicle($args[0], $sender->getWorld(), $sender->getLocation());
 				} else {
 					$sender->sendMessage($this->prefix . C::RED . "\"" . $args[0] . "\" does not exist.");
 					return;
@@ -113,13 +114,13 @@ class CommandHandler {
 					$sender->sendMessage($this->prefix . C::RED . "You do not have permission to use that command.");
 					return;
 				}
-				if (!array_key_exists($sender->getRawUniqueId(), Main::$inVehicle)) {
+				if (!array_key_exists($sender->getUniqueId()->toString(), Main::$inVehicle)) {
 					$sender->sendMessage($this->prefix . C::GREEN . "Tap the vehicle you wish to lock. (You must be the owner to lock)");
 					$this->plugin->interactCommands[strtolower($sender->getName())] = ["lock", []];
 					return;
 				}
 				/** @var Vehicle $vehicle */
-				$vehicle = Main::$inVehicle[$sender->getRawUniqueId()];
+				$vehicle = Main::$inVehicle[$sender->getUniqueId()->toString()];
 				if ($vehicle->getOwner() === null) {
 					$sender->sendMessage($this->prefix . C::RED . "This vehicle has no owner, to claim it jump in the driver seat.");
 					return;
@@ -141,13 +142,13 @@ class CommandHandler {
 					$sender->sendMessage($this->prefix . C::RED . "You do not have permission to use that command.");
 					return;
 				}
-				if (!array_key_exists($sender->getRawUniqueId(), Main::$inVehicle)) {
+				if (!array_key_exists($sender->getUniqueId()->toString(), Main::$inVehicle)) {
 					$sender->sendMessage($this->prefix . C::GREEN . "Tap the vehicle you wish to un-lock. (You must be the owner to un-lock)");
 					$this->plugin->interactCommands[strtolower($sender->getName())] = ["un-lock", []];
 					return;
 				}
 				/** @var Vehicle $vehicle */
-				$vehicle = Main::$inVehicle[$sender->getRawUniqueId()];
+				$vehicle = Main::$inVehicle[$sender->getUniqueId()->toString()];
 				if ($vehicle->getOwner() === null) {
 					$sender->sendMessage($this->prefix . C::RED . "This vehicle has no owner, to claim it jump in the driver seat.");
 					return;
@@ -168,13 +169,13 @@ class CommandHandler {
 					$sender->sendMessage($this->prefix . C::RED . "You do not have permission to use that command.");
 					return;
 				}
-				if (!array_key_exists($sender->getRawUniqueId(), Main::$inVehicle)) {
+				if (!array_key_exists($sender->getUniqueId()->toString(), Main::$inVehicle)) {
 					$sender->sendMessage($this->prefix . C::GREEN . "Tap the vehicle you wish to giveaway. (You must be the owner)");
 					$this->plugin->interactCommands[strtolower($sender->getName())] = ["giveaway", []];
 					return;
 				}
 				/** @var Vehicle $vehicle */
-				$vehicle = Main::$inVehicle[$sender->getRawUniqueId()];
+				$vehicle = Main::$inVehicle[$sender->getUniqueId()->toString()];
 				if ($vehicle->getOwner() === null) {
 					$sender->sendMessage($this->prefix . C::RED . "This vehicle has no owner.");
 					return;

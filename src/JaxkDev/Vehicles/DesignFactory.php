@@ -57,9 +57,8 @@ class DesignFactory {
 					//todo
 					throw new Exception("File '" . $design["geometryFile"] . "' does not exist.");
 				}
-				$this->designs[$design["name"]] = new Skin($design["designId"], $design["designData"], "", $design["geometryName"], json_encode($design["geometryData"]));
 				try {
-					$this->designs[$design["name"]]->validate();
+					$this->designs[$design["name"]] = new Skin($design["designId"], $design["designData"], "", $design["geometryName"], json_encode($design["geometryData"]));
 				} catch (InvalidArgumentException $e) {
 					unset($this->designs[$design["name"]]);
 					$this->plugin->getLogger()->debug($e);

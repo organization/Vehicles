@@ -16,7 +16,6 @@ namespace JaxkDev\Vehicles;
 
 use JaxkDev\Vehicles\Vehicle\Vehicle;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
-use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\entity\EntityTeleportEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerDeathEvent;
@@ -25,6 +24,8 @@ use pocketmine\event\server\DataPacketReceiveEvent;
 use pocketmine\network\mcpe\protocol\InteractPacket;
 use pocketmine\network\mcpe\protocol\InventoryTransactionPacket;
 use pocketmine\network\mcpe\protocol\PlayerInputPacket;
+use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
+use pocketmine\player\Player;
 use pocketmine\utils\TextFormat as C;
 
 //Only 3 'vehicle's in one namespace *HAHA*
@@ -40,18 +41,28 @@ class EventHandler implements Listener {
 
 	public function onPlayerLeaveEvent(PlayerQuitEvent $event) {
 		$player = $event->getPlayer();
-		if (isset(Main::$inVehicle[$player->getRawUniqueId()])) {
-			Main::$inVehicle[$player->getRawUniqueId()]->removePlayer($player);
+		if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
+			Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
 			$this->plugin->getLogger()->debug($player->getName() . " Has left the server while in a vehicle, they have been kicked from the vehicle.");
 		}
 	}
 
-	public function onPlayerChangeLevelEvent(EntityLevelChangeEvent $event) {
+	public function onPlayerChangeLevelEvent(EntityTeleportEvent $event) {
+		if ($event->getFrom()->getWorld()->getFolderName() === $event->getTo()->getWorld()->getFolderName()) {
+			/** @var Player $player */
+			$player = $event->getEntity();
+			if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
+				Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
+				$player->sendMessage(C::RED . "You cannot teleport with a vehicle, you have been kicked from your vehicle.");
+				$this->plugin->getLogger()->debug($player->getName() . " Has teleported while in a vehicle, they have been kicked from their vehicle.");
+			}
+			return;
+		}
 		if ($event->getEntity() instanceof Player) {
 			/** @var Player $player */
 			$player = $event->getEntity();
-			if (isset(Main::$inVehicle[$player->getRawUniqueId()])) {
-				Main::$inVehicle[$player->getRawUniqueId()]->removePlayer($player);
+			if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
+				Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
 				$player->sendMessage(C::RED . "You cannot change level with a vehicle, you have been kicked from your vehicle.");
 				$this->plugin->getLogger()->debug($player->getName() . " Has changed level while in a vehicle, they have been kicked from the vehicle.");
 			}
@@ -60,22 +71,10 @@ class EventHandler implements Listener {
 
 	public function onPlayerDeathEvent(PlayerDeathEvent $event) {
 		$player = $event->getPlayer();
-		if (isset(Main::$inVehicle[$player->getRawUniqueId()])) {
-			Main::$inVehicle[$player->getRawUniqueId()]->removePlayer($player);
+		if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
+			Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
 			$player->sendMessage(C::RED . "You were killed so you have been kicked from your vehicle.");
 			$this->plugin->getLogger()->debug($player->getName() . " Has died while in a vehicle, they have been kicked from the vehicle.");
-		}
-	}
-
-	public function onPlayerTeleportEvent(EntityTeleportEvent $event) {
-		if ($event->getEntity() instanceof Player) {
-			/** @var Player $player */
-			$player = $event->getEntity();
-			if (isset(Main::$inVehicle[$player->getRawUniqueId()])) {
-				Main::$inVehicle[$player->getRawUniqueId()]->removePlayer($player);
-				$player->sendMessage(C::RED . "You cannot teleport with a vehicle, you have been kicked from your vehicle.");
-				$this->plugin->getLogger()->debug($player->getName() . " Has teleported while in a vehicle, they have been kicked from their vehicle.");
-			}
 		}
 	}
 
@@ -209,10 +208,10 @@ class EventHandler implements Listener {
 		$packet = $event->getPacket();
 
 		if ($packet->action === InteractPacket::ACTION_LEAVE_VEHICLE) {
-			$player = $event->getPlayer();
-			$vehicle = $player->getLevel()->getEntity($packet->target);
+			$player = $event->getOrigin()->getPlayer();
+			$vehicle = $player->getWorld()->getEntity($packet->target);
 			if ($vehicle instanceof Vehicle) {
-				$vehicle->removePlayer($event->getPlayer());
+				$vehicle->removePlayer($player);
 				$event->setCancelled();
 			}
 		}
@@ -227,10 +226,10 @@ class EventHandler implements Listener {
 		$packet = $event->getPacket();
 
 		if ($packet->transactionType === InventoryTransactionPacket::TYPE_USE_ITEM_ON_ENTITY) {
-			$player = $event->getPlayer();
-			$vehicle = $player->getLevel()->getEntity($packet->trData->entityRuntimeId);
-			if ($vehicle instanceof Vehicle) {
-				if ($packet->trData->actionType === InventoryTransactionPacket::USE_ITEM_ON_ENTITY_ACTION_INTERACT) {
+			$player = $event->getOrigin()->getPlayer();
+			if ($packet->trData instanceof UseItemOnEntityTransactionData) {
+				$vehicle = $player->getWorld()->getEntity($packet->trData->getEntityRuntimeId());
+				if ($vehicle instanceof Vehicle) {
 					if ($vehicle->hasDriver()) $vehicle->setPassenger($player);
 					else $vehicle->setDriver($player);
 					$event->setCancelled();
@@ -246,15 +245,15 @@ class EventHandler implements Listener {
 	public function onPlayerInputPacket($event) {
 		/** @var PlayerInputPacket $packet */
 		$packet = $event->getPacket();
-		$player = $event->getPlayer();
+		$player = $event->getOrigin()->getPlayer();
 
-		if (isset(Main::$inVehicle[$player->getRawUniqueId()])) {
+		if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
 			$event->setCancelled();
 			if ($packet->motionX === 0.0 and $packet->motionY === 0.0) {
 				return;
 			} //MCPE Likes to send a lot of useless packets, this cuts down the ones we handle.
 			/** @var Vehicle $vehicle */
-			$vehicle = Main::$inVehicle[$player->getRawUniqueId()];
+			$vehicle = Main::$inVehicle[$player->getUniqueId()->toString()];
 			if ($vehicle->getDriver() === null) return;
 			if ($vehicle->getDriver()->getUniqueId()->equals($player->getUniqueId())) $vehicle->updateMotion($packet->motionX, $packet->motionY);
 		}

@@ -17,23 +17,25 @@ namespace JaxkDev\Vehicles\Vehicle;
 use JaxkDev\Vehicles\Main;
 use LogicException;
 use pocketmine\entity\Entity;
-use pocketmine\entity\EntityIds;
-use pocketmine\entity\Rideable;
 use pocketmine\entity\Skin;
-use pocketmine\item\Item;
-use pocketmine\level\Level;
+use pocketmine\item\ItemFactory;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
 use pocketmine\network\mcpe\protocol\PlayerListPacket;
 use pocketmine\network\mcpe\protocol\SetActorLinkPacket;
-use pocketmine\network\mcpe\protocol\types\EntityLink;
+use pocketmine\network\mcpe\protocol\types\entity\EntityLegacyIds;
+use pocketmine\network\mcpe\protocol\types\entity\EntityLink;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
+use pocketmine\player\Player;
 use pocketmine\utils\TextFormat as C;
 use pocketmine\utils\UUID;
+use pocketmine\world\World;
 
-abstract class Vehicle extends Entity implements Rideable {
-	public const NETWORK_ID = EntityIds::HORSE;
+abstract class Vehicle extends Entity {
+	public const NETWORK_ID = EntityLegacyIds::HORSE;
 
 	protected $gravity = 1; //todo find best value. (remember not to make negative...)
 	protected $drag = 0.5;
@@ -64,31 +66,30 @@ abstract class Vehicle extends Entity implements Rideable {
 
 	/**
 	 * Vehicle constructor.
-	 * @param Level $level
+	 * @param World $world
 	 * @param CompoundTag $nbt
 	 */
-	public function __construct(Level $level, CompoundTag $nbt) {
+	public function __construct(World $world, CompoundTag $nbt) {
 		$this->uuid = UUID::fromRandom();
 		$this->plugin = Main::getInstance();
-
-		parent::__construct($level, $nbt);
-
-		$this->setNameTag(C::RED . "[Vehicle] " . C::GOLD . $this->getName());
-		$this->setNameTagAlwaysVisible($this->plugin->cfg["vehicles"]["show-nametags"]);
-		$owner = $this->namedtag->getString("ownerUUID", "NA");
+		$owner = $nbt->getString("ownerUUID", "NA");
 		//$this->plugin->getLogger()->debug("ownerUUID: ".$owner);
 		if ($owner !== "NA") {
 			$this->owner = UUID::fromString($owner);
 		}
-		$locked = $this->namedtag->getByte("locked", 0);
+		$locked = $nbt->getByte("locked", 0);
 		//$this->plugin->getLogger()->debug("locked: ".($locked === 0 ? "un-locked" : "locked"));
 		if ($locked === 1) $this->locked = true;
 		if ($this->owner === null) {
 			$this->locked = false;
-			$this->updateNBT();
 		}
+
+		parent::__construct($world, $nbt);
+
+		$this->setNameTag(C::RED . "[Vehicle] " . C::GOLD . $this->getName());
+		$this->setNameTagAlwaysVisible($this->plugin->cfg["vehicles"]["show-nametags"]);
 		$this->setCanSaveWithChunk(true);
-		$this->saveNBT();
+		$this->updateNBT();
 	}
 
 	/**
@@ -98,9 +99,17 @@ abstract class Vehicle extends Entity implements Rideable {
 	abstract static function getName(): string;
 
 	public function updateNBT(): void {
-		$this->namedtag->setString("ownerUUID", $this->owner !== null ? $this->owner->toString() : "NA");
-		$this->namedtag->setByte("locked", $this->locked ? 1 : 0);
+		$this->owner = $this->owner !== null ? $this->owner->toString() : "NA";
+		$this->locked = $this->locked ? 1 : 0;
 		$this->saveNBT();
+	}
+
+	public function saveNBT(): CompoundTag {
+		$nbt = parent::saveNBT();
+		$nbt->setString("ownerUUID", $this->owner->toString());
+		$nbt->setByte("locked", (int) $this->locked);
+
+		return $nbt;
 	}
 
 	public function isEmpty(): bool {
@@ -133,21 +142,22 @@ abstract class Vehicle extends Entity implements Rideable {
 	 */
 	public function removeDriver(): bool {
 		if ($this->driver === null) return false;
-		$this->driver->setGenericFlag(Entity::DATA_FLAG_RIDING, false);
-		$this->driver->setGenericFlag(Entity::DATA_FLAG_SITTING, false);
-		$this->driver->setGenericFlag(Entity::DATA_FLAG_WASD_CONTROLLED, false);
+		$this->driver->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::RIDING, false);
+		$this->driver->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, false);
+		$this->driver->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::WASD_CONTROLLED, false);
 
-		$this->setGenericFlag(Entity::DATA_FLAG_SADDLED, false);
+		$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SADDLED, false);
+
 		$this->driver->sendMessage(C::GREEN . "You are no longer driving this vehicle.");
 		$this->broadcastLink($this->driver, EntityLink::TYPE_REMOVE);
-		unset(Main::$inVehicle[$this->driver->getRawUniqueId()]);
+		unset(Main::$inVehicle[$this->driver->getUniqueId()->toString()]);
 		$this->driver = null;
 		return true;
 	}
 
 	protected function broadcastLink(Player $player, int $type = EntityLink::TYPE_RIDER): void {
 		foreach ($this->getViewers() as $viewer) {
-			if (!isset($viewer->getViewers()[$player->getLoaderId()])) {
+			if (!isset($viewer->getViewers()[spl_object_id($player)])) {
 				$player->spawnTo($viewer);
 			}
 			$pk = new SetActorLinkPacket();
@@ -174,9 +184,9 @@ abstract class Vehicle extends Entity implements Rideable {
 		if (isset($this->passengers[$seat])) {
 			$player = $this->passengers[$seat];
 			unset($this->passengers[$seat]);
-			unset(Main::$inVehicle[$player->getRawUniqueId()]);
-			$player->setGenericFlag(Entity::DATA_FLAG_RIDING, false);
-			$player->setGenericFlag(Entity::DATA_FLAG_SITTING, false);
+			unset(Main::$inVehicle[$player->getUniqueId()->toString()]);
+			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::RIDING, false);
+			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, false);
 			$this->broadcastLink($player, EntityLink::TYPE_REMOVE);
 			$player->sendMessage(C::GREEN . "You are no longer in this vehicle.");
 			return true;
@@ -196,10 +206,10 @@ abstract class Vehicle extends Entity implements Rideable {
 			if ($seat === null) return false;
 		}
 		$this->passengers[$seat] = $player;
-		Main::$inVehicle[$player->getRawUniqueId()] = $this;
-		$player->setGenericFlag(Entity::DATA_FLAG_RIDING, true);
-		$player->setGenericFlag(Entity::DATA_FLAG_SITTING, true);
-		$player->getDataPropertyManager()->setVector3(Entity::DATA_RIDER_SEAT_POSITION, $this->getPassengerSeatPosition($seat));
+		Main::$inVehicle[$player->getUniqueId()->toString()] = $this;
+		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::RIDING, true);
+		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, true);
+		$player->getNetworkProperties()->setVector3(EntityMetadataProperties::RIDER_SEAT_POSITION, $this->getPassengerSeatPosition($seat));
 		$this->broadcastLink($player, EntityLink::TYPE_PASSENGER);
 		$player->sendMessage(C::GREEN . "You are now a passenger in this vehicle.");
 		return true;
@@ -219,7 +229,6 @@ abstract class Vehicle extends Entity implements Rideable {
 	 */
 	public function setLocked(bool $var): void {
 		$this->locked = $var;
-		$this->namedtag->setByte("locked", $var ? 1 : 0);
 		$this->saveNBT();
 	}
 
@@ -277,15 +286,13 @@ abstract class Vehicle extends Entity implements Rideable {
 			$player->sendMessage(C::RED . $this->driver->getName() . " is driving this vehicle.");
 			return false;
 		}
+		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::RIDING, true);
+		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, true);
+		$player->getNetworkProperties()->setVector3(EntityMetadataProperties::RIDER_SEAT_POSITION, $this->getDriverSeatPosition());
 
-		$player->setGenericFlag(Entity::DATA_FLAG_RIDING, true);
-		$player->setGenericFlag(Entity::DATA_FLAG_SITTING, true);
-		$player->setGenericFlag(Entity::DATA_FLAG_WASD_CONTROLLED, true);
-		$player->getDataPropertyManager()->setVector3(Entity::DATA_RIDER_SEAT_POSITION, $this->getDriverSeatPosition());
-
-		$this->setGenericFlag(Entity::DATA_FLAG_SADDLED, true);
+		$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SADDLED, true);
 		$this->driver = $player;
-		Main::$inVehicle[$this->driver->getRawUniqueId()] = $this;
+		Main::$inVehicle[$this->driver->getUniqueId()->toString()] = $this;
 		$player->sendMessage(C::GREEN . "You are now driving this vehicle.");
 		$this->broadcastLink($this->driver);
 		$player->sendTip(C::GREEN . "Sneak/Jump to leave the vehicle.");
@@ -320,38 +327,31 @@ abstract class Vehicle extends Entity implements Rideable {
 		return true;
 	}
 
-	protected function initEntity(): void {
-		parent::initEntity();
-	}
-
 	//Without this the player will not do the things it should be (driving, sitting etc)
 
 	protected function sendInitPacket(Player $player, Vehicle $obj): void {
-		$skin = $obj->getDesign();
-		$skin->validate(); //Leave it to throw the exception as it should not be invalid this far in.
-
 		//Below adds the entity ID + skin to the list to be used in the AddPlayerPacket (WITHOUT THIS DEFAULT/NO SKIN WILL BE USED).
 		$pk = new PlayerListPacket();
 		$pk->type = PlayerListPacket::TYPE_ADD;
-		$pk->entries[] = PlayerListEntry::createAdditionEntry($obj->uuid, $obj->id, $obj::getName(), $obj::getDesign());;
-		$player->sendDataPacket($pk);
+		$pk->entries[] = PlayerListEntry::createAdditionEntry($obj->uuid, $obj->id, $obj::getName(), $obj::getDesign());
+		$player->getNetworkSession()->sendDataPacket($pk);
 
 		//Below adds the actual entity and puts the pieces together.
 		$pk = new AddPlayerPacket();
 		$pk->uuid = $obj->uuid;
-		$pk->item = Item::get(Item::AIR);
+		$pk->item = ItemFactory::air();
 		$pk->motion = $obj->getMotion();
-		$pk->position = $obj->asVector3();
+		$pk->position = $obj->getLocation();
 		$pk->entityRuntimeId = $obj->getId();
-		$pk->metadata = $obj->propertyManager->getAll();
+		$pk->metadata = $obj->getNetworkProperties()->getAll();
 		$pk->username = $obj::getName() . "-" . $obj->id; //Unique.
-		$player->sendDataPacket($pk);
+		$player->getNetworkSession()->sendDataPacket($pk);
 
 		//Dont want to keep a fake person there...
 		$pk = new PlayerListPacket();
 		$pk->type = $pk::TYPE_REMOVE;
 		$pk->entries = [PlayerListEntry::createRemovalEntry($obj->uuid)];
-		$player->sendDataPacket($pk);
+		$player->getNetworkSession()->sendDataPacket($pk);
 	}
 
 	/**

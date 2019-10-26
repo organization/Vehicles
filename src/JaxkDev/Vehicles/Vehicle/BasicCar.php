@@ -16,9 +16,10 @@ namespace JaxkDev\Vehicles\Vehicle;
 
 use JaxkDev\Vehicles\Main;
 use pocketmine\entity\Skin;
-use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\player\Player;
+use pocketmine\world\World;
 
 class BasicCar extends Vehicle {
 	public $width = 3; //rough, probably no where near.
@@ -26,10 +27,10 @@ class BasicCar extends Vehicle {
 
 	protected $baseOffset = 1.615;
 
-	public function __construct(Level $level, CompoundTag $nbt) {
+	public function __construct(World $world, CompoundTag $nbt) {
 		$this->driverPosition = new Vector3(0.55, $this->height - 2.4, 0.1);
 		$this->passengerPositions[] = new Vector3(-0.55, $this->height - 2.4, 0.1);
-		parent::__construct($level, $nbt);
+		parent::__construct($world, $nbt);
 
 		$this->setScale(1.4);
 	}
@@ -59,14 +60,14 @@ class BasicCar extends Vehicle {
 		//+x = left (+1/+0.7)
 		//-x = right (-1/-0.7)
 		if ($x !== 0) {
-			$this->yaw -= $x * 6;
+			$this->location->yaw -= $x * 6;
 			$this->motion = $this->getDirectionVector();
 		}
 
 		if ($y > 0) {
 			//forward
 			$this->motion = $this->getDirectionVector()->multiply($y * 2.5);
-			$this->yaw = $this->driver->getYaw();// - turn based on players rotation
+			$this->location->yaw = $this->driver->getLocation()->getYaw();// - turn based on players rotation
 		} elseif ($y < 0) {
 			//reverse
 			$this->motion = $this->getDirectionVector()->multiply($y * 1.5);

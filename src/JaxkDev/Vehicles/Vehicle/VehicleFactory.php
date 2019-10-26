@@ -17,9 +17,9 @@ namespace JaxkDev\Vehicles\Vehicle;
 use ClassNotFoundException;
 use InvalidArgumentException;
 use JaxkDev\Vehicles\Main;
-use pocketmine\entity\Entity;
-use pocketmine\level\Level;
+use pocketmine\entity\EntityFactory;
 use pocketmine\math\Vector3;
+use pocketmine\world\World;
 use reflectionClass;
 use ReflectionException;
 
@@ -54,7 +54,7 @@ class VehicleFactory {
 			/** @noinspection PhpIncludeInspection */
 			require $path;
 			$className = "JaxkDev\\Vehicles\\External\\" . $file;
-			$rc = new reflectionClass($className);
+			$rc = new ReflectionClass($className);
 			/** @var Vehicle $class */
 			$class = $rc->newInstanceWithoutConstructor();
 			if (!is_a($class, Vehicle::class)) {
@@ -100,13 +100,13 @@ class VehicleFactory {
 	 * @throws ReflectionException
 	 */
 	public function registerVehicle(Vehicle $vehicle) {
-		Entity::registerEntity(get_class($vehicle), false);
+		EntityFactory::register(get_class($vehicle), [$vehicle::getName()]);
 		$this->registeredTypes[$vehicle::getName()] = (new ReflectionClass($vehicle))->getShortName();;
 		$this->plugin->getLogger()->debug("Registered Vehicle '" . $vehicle::getName() . "'");
 	}
 
 	public function registerDefaultVehicles() {
-		Entity::registerEntity(BasicCar::class, false);
+		EntityFactory::register(BasicCar::class, [BasicCar::getName()]);
 		$this->registeredTypes[BasicCar::getName()] = "BasicCar";
 		//Todo others.
 
@@ -118,11 +118,11 @@ class VehicleFactory {
 	/**
 	 * Spawns a vehicle.
 	 * @param string $type
-	 * @param Level $level
+	 * @param World $world
 	 * @param Vector3 $pos
 	 * @return Vehicle
 	 */
-	public function spawnVehicle(string $type, Level $level, Vector3 $pos): Vehicle {
+	public function spawnVehicle(string $type, World $world, Vector3 $pos): Vehicle {
 		if (!$this->isRegistered($type)) throw new InvalidArgumentException("Type \"${$type} is not a registered vehicle.");
 
 		$type = $this->findClass($type);
@@ -130,13 +130,13 @@ class VehicleFactory {
 			throw new ClassNotFoundException("Vehicle type \"${$type}\" Has escaped our reaches and cant be found...");
 		}
 		/** @var Vehicle|null $entity */
-		$entity = Entity::createEntity($type, $level, Entity::createBaseNBT($pos));
+		$entity = EntityFactory::create($type, $world, EntityFactory::createBaseNBT($pos));
 		if ($entity === null) {
 			throw new InvalidArgumentException("Type '${type}' is not a registered vehicle.");
 		}
 		$entity->spawnToAll();
 
-		$this->plugin->getLogger()->debug("Vehicle \"" . $type . "\" spawned at " . $pos . " in the level " . $level->getName());
+		$this->plugin->getLogger()->debug("Vehicle \"" . $type . "\" spawned at " . $pos . " in the level " . $world->getFolderName());
 
 		return $entity;
 	}

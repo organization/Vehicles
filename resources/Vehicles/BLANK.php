@@ -17,9 +17,10 @@ namespace JaxkDev\Vehicles\External;
 use JaxkDev\Vehicles\Main;
 use JaxkDev\Vehicles\Vehicle\Vehicle;
 use pocketmine\entity\Skin;
-use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\player\Player;
+use pocketmine\world\World;
 
 class BLANK extends Vehicle {
 	public $width = 0;
@@ -27,11 +28,11 @@ class BLANK extends Vehicle {
 
 	protected $baseOffset = 1.615;
 
-	public function __construct(Level $level, CompoundTag $nbt) {
+	public function __construct(World $world, CompoundTag $nbt) {
 		$this->driverPosition = new Vector3(0, 0, 0); //X,Y,Z
 		$this->passengerPositions[] = new Vector3(0, 0, 0); //X,Y,Z
 		//Repeat the same line above to make multiple passenger seats.
-		parent::__construct($level, $nbt);
+		parent::__construct($world, $nbt);
 
 		$this->setScale(1); //If you had to scale down/up while modelling you can set it to real size here.
 	}
@@ -58,14 +59,14 @@ class BLANK extends Vehicle {
 		//+x = left (+1/+0.7)
 		//-x = right (-1/-0.7)
 		if ($x !== 0) {
-			$this->yaw -= $x * 6;
+			$this->location->yaw -= $x * 6;
 			$this->motion = $this->getDirectionVector();
 		}
 
 		if ($y > 0) {
 			//forward
 			$this->motion = $this->getDirectionVector()->multiply($y * 2.5);
-			$this->yaw = $this->driver->getYaw();// - turn based on players rotation
+			$this->location->yaw = $this->driver->getLocation()->getYaw();// - turn based on players rotation
 		} elseif ($y < 0) {
 			//reverse
 			$this->motion = $this->getDirectionVector()->multiply($y * 1.5);
