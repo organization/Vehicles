@@ -89,7 +89,6 @@ abstract class Vehicle extends Entity {
 		$this->setNameTag(C::RED . "[Vehicle] " . C::GOLD . $this->getName());
 		$this->setNameTagAlwaysVisible($this->plugin->cfg["vehicles"]["show-nametags"]);
 		$this->setCanSaveWithChunk(true);
-		$this->updateNBT();
 	}
 
 	/**
@@ -97,12 +96,6 @@ abstract class Vehicle extends Entity {
 	 * @return string
 	 */
 	abstract static function getName(): string;
-
-	public function updateNBT(): void {
-		$this->owner = $this->owner !== null ? $this->owner->toString() : "NA";
-		$this->locked = $this->locked ? 1 : 0;
-		$this->saveNBT();
-	}
 
 	public function saveNBT(): CompoundTag {
 		$nbt = parent::saveNBT();
@@ -242,7 +235,6 @@ abstract class Vehicle extends Entity {
 
 	public function setOwner(Player $player): void {
 		$this->owner = $player->getUniqueId();
-		$this->updateNBT();
 	}
 
 	public function getNextAvailableSeat(): ?int {
@@ -320,7 +312,6 @@ abstract class Vehicle extends Entity {
 	public function removeOwner(): void {
 		$this->owner = null;
 		$this->locked = false; //Cant be locked and no owner, causes endless loop.
-		$this->updateNBT();
 	}
 
 	public function isFireProof(): bool {
