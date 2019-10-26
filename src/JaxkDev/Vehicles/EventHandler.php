@@ -43,7 +43,7 @@ class EventHandler implements Listener {
 		$player = $event->getPlayer();
 		if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
 			Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
-			$this->plugin->getLogger()->debug($player->getName() . " Has left the server while in a vehicle, they have been kicked from the vehicle.");
+			$this->plugin->getLogger()->debug($player->getName() . "님이 교통수단을 타고있다가 게임을 종료하였습니다, 교통수단에서 내려졌습니다.");
 		}
 	}
 
@@ -53,8 +53,8 @@ class EventHandler implements Listener {
 			$player = $event->getEntity();
 			if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
 				Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
-				$player->sendMessage(C::RED . "You cannot teleport with a vehicle, you have been kicked from your vehicle.");
-				$this->plugin->getLogger()->debug($player->getName() . " Has teleported while in a vehicle, they have been kicked from their vehicle.");
+				$player->sendMessage(C::RED . "교통수단과 함께 이동할 수 없으므로, 교통수단에서 내려졌습니다.");
+				$this->plugin->getLogger()->debug($player->getName() . "님이 교통수단을 타고있다가 이동하였습니다, 교통수단에서 내려졌습니다.");
 			}
 			return;
 		}
@@ -63,8 +63,8 @@ class EventHandler implements Listener {
 			$player = $event->getEntity();
 			if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
 				Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
-				$player->sendMessage(C::RED . "You cannot change level with a vehicle, you have been kicked from your vehicle.");
-				$this->plugin->getLogger()->debug($player->getName() . " Has changed level while in a vehicle, they have been kicked from the vehicle.");
+				$player->sendMessage(C::RED . "교통수단과 함께 월드를 이동할 수 없으므로, 교통수단에서 내려졌습니다.");
+				$this->plugin->getLogger()->debug($player->getName() . "님이 교통수단을 타고있다가 월드를 이동하였습니다, 교통수단에서 내려졌습니다.");
 			}
 		}
 	}
@@ -73,8 +73,8 @@ class EventHandler implements Listener {
 		$player = $event->getPlayer();
 		if (isset(Main::$inVehicle[$player->getUniqueId()->toString()])) {
 			Main::$inVehicle[$player->getUniqueId()->toString()]->removePlayer($player);
-			$player->sendMessage(C::RED . "You were killed so you have been kicked from your vehicle.");
-			$this->plugin->getLogger()->debug($player->getName() . " Has died while in a vehicle, they have been kicked from the vehicle.");
+			$player->sendMessage(C::RED . "교통수단을 타고있다가 죽었기 때문에, 교통수단에서 내려졌습니다.");
+			$this->plugin->getLogger()->debug($player->getName() . "님이 교통수단을 타고있다가 죽었습니다, 교통수단에서 내려졌습니다.");
 		}
 	}
 
@@ -98,68 +98,68 @@ class EventHandler implements Listener {
 					case 'lock':
 						if ($entity instanceof Vehicle) {
 							if ($entity->getOwner() === null) {
-								$attacker->sendMessage($this->plugin->prefix . C::RED . "This vehicle has no owner.");
+								$attacker->sendMessage($this->plugin->prefix . C::RED . "이 교통수단은 탑승자가 없습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
 							if ($attacker->getUniqueId()->equals($entity->getOwner())) {
 								if ($entity->isLocked()) {
-									$attacker->sendMessage($this->plugin->prefix . C::RED . "This vehicle is already locked.");
+									$attacker->sendMessage($this->plugin->prefix . C::RED . "이 교통수단은 이미 잠금되어 있습니다.");
 									unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 									break;
 								}
 								$entity->setLocked(true);
-								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "This vehicle has been locked, no one may drive/get in the vehicle.");
+								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "교통수단을 잠궜습니다. 탑승 상태를 변경할 수 없습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
-							$attacker->sendMessage($this->plugin->prefix . C::RED . "You are not the owner of this vehicle.");
+							$attacker->sendMessage($this->plugin->prefix . C::RED . "현재 교통수단의 탑승자가 아닙니다.");
 						}
 						break;
 					case 'un-lock':
 						if ($entity instanceof Vehicle) {
 							if ($entity->getOwner() === null) {
-								$attacker->sendMessage($this->plugin->prefix . C::RED . "This vehicle has no owner.");
+								$attacker->sendMessage($this->plugin->prefix . C::RED . "이 교통수단은 탑승자가 없습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
 							if ($attacker->getUniqueId()->equals($entity->getOwner())) {
 								if (!$entity->isLocked()) {
-									$attacker->sendMessage($this->plugin->prefix . C::RED . "This vehicle is already un-locked.");
+									$attacker->sendMessage($this->plugin->prefix . C::RED . "이 교통수단은 이미 잠금이 해제되어 있습니다.");
 									unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 									break;
 								}
 								$entity->setLocked(false);
-								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "This vehicle has been un-locked, anyone may now drive/get in the vehicle.");
+								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "교통수단 잠금을 해제했습니다. 탑승 상태를 변경할 수 있습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
-							$attacker->sendMessage($this->plugin->prefix . C::RED . "You are not the owner of this vehicle.");
+							$attacker->sendMessage($this->plugin->prefix . C::RED . "현재 교통수단의 탑승자가 아닙니다.");
 						}
 						break;
 					case 'giveaway':
 						if ($entity instanceof Vehicle) {
 							if ($entity->getOwner() === null) {
-								$attacker->sendMessage($this->plugin->prefix . C::RED . "This vehicle has no owner.");
+								$attacker->sendMessage($this->plugin->prefix . C::RED . "이 교통수단은 탑승자가 없습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
 							if ($attacker->getUniqueId()->equals($entity->getOwner())) {
 								$entity->removeOwner();
-								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "This vehicle has been given away, next person to drive it will become owner.");
+								$attacker->sendMessage($this->plugin->prefix . C::GOLD . "이 교통수단을 버렸습니다.");
 								unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
 								break;
 							}
-							$attacker->sendMessage($this->plugin->prefix . C::RED . "You are not the owner of this vehicle.");
+							$attacker->sendMessage($this->plugin->prefix . C::RED . "현재 교통수단의 탑승자가 아닙니다.");
 						}
 						break;
 					case 'remove':
 						if ($entity instanceof Vehicle) {
 							if (!$entity->isEmpty()) {
-								$attacker->sendMessage($this->plugin->prefix . C::RED . "You cannot remove a vehicle with players in it.");
+								$attacker->sendMessage($this->plugin->prefix . C::RED . "탑승자가 있는 교통수단은 제거할 수 없습니다.");
 							} else {
 								$entity->close();
-								$attacker->sendMessage($this->plugin->prefix . "'" . $entity->getName() . "' has been removed.");
+								$attacker->sendMessage($this->plugin->prefix . "'" . $entity->getName() . "' (을)를 제거했습니다.");
 							}
 						}
 						unset($this->plugin->interactCommands[strtolower($attacker->getName())]);
@@ -170,7 +170,7 @@ class EventHandler implements Listener {
 			} else {
 				if ($entity instanceof Vehicle) {
 					if (!$attacker->hasPermission("vehicles.drive")) {
-						$attacker->sendMessage(C::RED . "You do not have permission to drive vehicles.");
+						$attacker->sendMessage(C::RED . "교통수단을 탑승할 권한이 없습니다..");
 						return;
 					}
 					if ($entity->getDriver() === null) $entity->setDriver($attacker);
@@ -225,17 +225,16 @@ class EventHandler implements Listener {
 		/** @var InventoryTransactionPacket $packet */
 		$packet = $event->getPacket();
 
-		if ($packet->transactionType === InventoryTransactionPacket::TYPE_USE_ITEM_ON_ENTITY) {
-			$player = $event->getOrigin()->getPlayer();
-			if ($packet->trData instanceof UseItemOnEntityTransactionData) {
-				$vehicle = $player->getWorld()->getEntity($packet->trData->getEntityRuntimeId());
-				if ($vehicle instanceof Vehicle) {
-					if ($vehicle->hasDriver()) $vehicle->setPassenger($player);
-					else $vehicle->setDriver($player);
-					$event->setCancelled();
-				}
+		$player = $event->getOrigin()->getPlayer();
+		if ($packet->trData instanceof UseItemOnEntityTransactionData) {
+			$vehicle = $player->getWorld()->getEntity($packet->trData->getEntityRuntimeId());
+			if ($vehicle instanceof Vehicle) {
+				if ($vehicle->hasDriver()) $vehicle->setPassenger($player);
+				else $vehicle->setDriver($player);
+				$event->setCancelled();
 			}
 		}
+
 	}
 
 	/**

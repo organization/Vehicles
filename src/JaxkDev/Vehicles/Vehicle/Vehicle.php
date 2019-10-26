@@ -141,7 +141,7 @@ abstract class Vehicle extends Entity {
 
 		$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SADDLED, false);
 
-		$this->driver->sendMessage(C::GREEN . "You are no longer driving this vehicle.");
+		$this->driver->sendMessage(C::GREEN . "더이상 이 교통수단을 조종하지 않습니다.");
 		$this->broadcastLink($this->driver, EntityLink::TYPE_REMOVE);
 		unset(Main::$inVehicle[$this->driver->getUniqueId()->toString()]);
 		$this->driver = null;
@@ -181,7 +181,7 @@ abstract class Vehicle extends Entity {
 			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::RIDING, false);
 			$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, false);
 			$this->broadcastLink($player, EntityLink::TYPE_REMOVE);
-			$player->sendMessage(C::GREEN . "You are no longer in this vehicle.");
+			$player->sendMessage(C::GREEN . "계속해서 이 교통수단에 탑승하고 있을 수 없습니다.");
 			return true;
 		}
 		return false;
@@ -189,7 +189,7 @@ abstract class Vehicle extends Entity {
 
 	public function setPassenger(Player $player, ?int $seat = null): bool {
 		if ($this->isLocked() && !$player->getUniqueId()->equals($this->getOwner())) {
-			$player->sendMessage(C::RED . "This vehicle is locked.");
+			$player->sendMessage(C::RED . "이 교통수단은 잠겼습니다.");
 			return false;
 		}
 		if ($seat !== null) {
@@ -204,7 +204,7 @@ abstract class Vehicle extends Entity {
 		$player->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::SITTING, true);
 		$player->getNetworkProperties()->setVector3(EntityMetadataProperties::RIDER_SEAT_POSITION, $this->getPassengerSeatPosition($seat));
 		$this->broadcastLink($player, EntityLink::TYPE_PASSENGER);
-		$player->sendMessage(C::GREEN . "You are now a passenger in this vehicle.");
+		$player->sendMessage(C::GREEN . "이 교통수단의 탑승자가 되었습니다.");
 		return true;
 	}
 

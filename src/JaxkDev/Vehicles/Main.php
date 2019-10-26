@@ -49,7 +49,7 @@ class Main extends PluginBase {
 
 	public function onLoad() {
 		self::$instance = $this;
-		$this->getLogger()->debug("Loading all resources...");
+		$this->getLogger()->debug("리소스 불러오는 중...");
 
 		//Save defaults here.
 		$this->saveConfig();
@@ -67,19 +67,23 @@ class Main extends PluginBase {
 
 		$this->cfgObject = $this->getConfig();
 		$this->cfg = $this->cfgObject->getAll();
-		$this->getLogger()->debug("Loaded Config file, Version: {$this->cfg["version"]}");
+		$this->getLogger()->debug("설정 파일을 불러왔습니다, 버전: {$this->cfg["version"]}");
 
-		$this->getLogger()->debug("Resources now loaded !");
+		$this->getLogger()->debug("리소스를 로딩했습니다!");
 	}
 
 	public function onEnable() {
-		$this->getLogger()->debug("Registering default vehicles...");
+		$this->getLogger()->debug("기본 교통수단을 등록하는 중...");
 		$this->vehicleFactory->registerDefaultVehicles();
-		$this->getLogger()->debug("Registering external vehicles...");
+		$this->getLogger()->debug("외부 교통수단을 등록하는 중...");
 		$this->vehicleFactory->registerExternalVehicles();
-		$this->getLogger()->debug("That's all done now.");
+		$this->getLogger()->debug("등록이 끝났습니다.");
 
 		$this->getServer()->getPluginManager()->registerEvents($this->eventHandler, $this);
+	}
+
+	protected function onDisable() {
+		$this->saveCfg();
 	}
 
 	public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool {
