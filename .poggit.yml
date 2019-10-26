@@ -1,6 +1,6 @@
 ---
 branches:
-- master
+  - master
 projects:
   Vehicles:
     path: ""

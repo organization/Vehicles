@@ -14,48 +14,40 @@ declare(strict_types=1);
 
 namespace JaxkDev\Vehicles;
 
-use pocketmine\utils\Config;
-use pocketmine\command\Command;
-use pocketmine\plugin\PluginBase;
-use pocketmine\command\CommandSender;
-use pocketmine\utils\TextFormat as C;
-
 use JaxkDev\Vehicles\Vehicle\Vehicle;
 use JaxkDev\Vehicles\Vehicle\VehicleFactory;
+use pocketmine\command\Command;
+use pocketmine\command\CommandSender;
+use pocketmine\plugin\PluginBase;
+use pocketmine\utils\Config;
+use pocketmine\utils\TextFormat as C;
 
-class Main extends PluginBase
-{
-
-	private static $instance;
+class Main extends PluginBase {
 
 	/** @var String|Vehicle[] */
 	public static $inVehicle = [];
-
-	public $prefix = C::GRAY."[".C::AQUA."Vehicles".C::GRAY."] ".C::GOLD."> ".C::RESET;
-
-	/** @var CommandHandler */
-	private $commandHandler;
-
-	/** @var EventHandler */
-	private $eventHandler;
-
+	private static $instance;
+	public $prefix = C::GRAY . "[" . C::AQUA . "Vehicles" . C::GRAY . "] " . C::GOLD . "> " . C::RESET;
 	/** @var VehicleFactory */
 	public $vehicleFactory;
-
 	/** @var DesignFactory */
 	public $designFactory;
-
 	/** @var String|String[]|String[] */
 	public $interactCommands = [];
-
+	/** @var array */
+	public $cfg;
+	/** @var CommandHandler */
+	private $commandHandler;
+	/** @var EventHandler */
+	private $eventHandler;
 	/** @var Config */
 	private $cfgObject;
 
-	/** @var array */
-	public $cfg;
+	public static function getInstance(): self {
+		return self::$instance;
+	}
 
-	public function onLoad()
-	{
+	public function onLoad() {
 		self::$instance = $this;
 		$this->getLogger()->debug("Loading all resources...");
 
@@ -80,8 +72,7 @@ class Main extends PluginBase
 		$this->getLogger()->debug("Resources now loaded !");
 	}
 
-	public function onEnable()
-	{
+	public function onEnable() {
 		$this->getLogger()->debug("Registering default vehicles...");
 		$this->vehicleFactory->registerDefaultVehicles();
 		$this->getLogger()->debug("Registering external vehicles...");
@@ -91,19 +82,13 @@ class Main extends PluginBase
 		$this->getServer()->getPluginManager()->registerEvents($this->eventHandler, $this);
 	}
 
-	public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool
-	{
+	public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool {
 		$this->commandHandler->handleCommand($sender, $args);
 		return true;
 	}
 
-	public function saveCfg() : void
-	{
+	public function saveCfg(): void {
 		$this->cfgObject->setAll($this->cfg);
 		$this->cfgObject->save();
-	}
-
-	public static function getInstance() : self{
-		return self::$instance;
 	}
 }

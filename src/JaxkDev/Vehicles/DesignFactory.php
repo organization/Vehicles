@@ -16,11 +16,10 @@ namespace JaxkDev\Vehicles;
 
 use Exception;
 use InvalidArgumentException;
-
 use pocketmine\entity\Skin;
 use pocketmine\plugin\PluginException;
 
-class DesignFactory{
+class DesignFactory {
 	private static $instance;
 
 	/** @var Main */
@@ -29,59 +28,50 @@ class DesignFactory{
 	/** @var String|Skin[] */
 	private $designs = [];
 
-	public function __construct(Main $plugin)
-	{
+	public function __construct(Main $plugin) {
 		self::$instance = $this;
 		$this->plugin = $plugin;
 	}
-	
-	public function loadAll(): void{
+
+	public static function getInstance(): self {
+		return self::$instance;
+	}
+
+	public function loadAll(): void {
 		$this->plugin->saveResource("Designs/Design_Manifest.json");
 
-		if(file_exists($this->plugin->getDataFolder()."Designs/Design_Manifest.json")){
-			$designManifest = json_decode(file_get_contents($this->plugin->getDataFolder()."Designs/Design_Manifest.json"), true) ?? [];
-			foreach($designManifest as $design){
-				$this->plugin->saveResource("Designs/".$design["designFile"], true);
-				$this->plugin->saveResource("Designs/".$design["geometryFile"], true);
-				if(file_exists($this->plugin->getDataFolder()."Designs/".$design["designFile"])){
-					$design["designData"] = $this->readDesignFile($this->plugin->getDataFolder()."Designs/".$design["designFile"]);
+		if (file_exists($this->plugin->getDataFolder() . "Designs/Design_Manifest.json")) {
+			$designManifest = json_decode(file_get_contents($this->plugin->getDataFolder() . "Designs/Design_Manifest.json"), true) ?? [];
+			foreach ($designManifest as $design) {
+				$this->plugin->saveResource("Designs/" . $design["designFile"], true);
+				$this->plugin->saveResource("Designs/" . $design["geometryFile"], true);
+				if (file_exists($this->plugin->getDataFolder() . "Designs/" . $design["designFile"])) {
+					$design["designData"] = $this->readDesignFile($this->plugin->getDataFolder() . "Designs/" . $design["designFile"]);
 				} else {
 					//todo
-					throw new Exception("File '".$design["designFile"]."' does not exist.");
+					throw new Exception("File '" . $design["designFile"] . "' does not exist.");
 				}
-				if(file_exists($this->plugin->getDataFolder()."Designs/".$design["geometryFile"])){
-					$design["geometryData"] = json_decode(file_get_contents($this->plugin->getDataFolder()."Designs/".$design["geometryFile"]));
+				if (file_exists($this->plugin->getDataFolder() . "Designs/" . $design["geometryFile"])) {
+					$design["geometryData"] = json_decode(file_get_contents($this->plugin->getDataFolder() . "Designs/" . $design["geometryFile"]));
 				} else {
 					//todo
-					throw new Exception("File '".$design["geometryFile"]."' does not exist.");
+					throw new Exception("File '" . $design["geometryFile"] . "' does not exist.");
 				}
-				$this->designs[$design["name"]] = new Skin($design["designId"],$design["designData"],"",$design["geometryName"],json_encode($design["geometryData"]));
-				try{
+				$this->designs[$design["name"]] = new Skin($design["designId"], $design["designData"], "", $design["geometryName"], json_encode($design["geometryData"]));
+				try {
 					$this->designs[$design["name"]]->validate();
-				} catch (InvalidArgumentException $e){
+				} catch (InvalidArgumentException $e) {
 					unset($this->designs[$design["name"]]);
 					$this->plugin->getLogger()->debug($e);
-					$this->plugin->getLogger()->warning("'".$design["name"]."' has not got valid skin data, and so it has been disabled.");
+					$this->plugin->getLogger()->warning("'" . $design["name"] . "' has not got valid skin data, and so it has been disabled.");
 					continue;
 				}
-				$this->plugin->getLogger()->debug("Loaded '".$design["name"]."'");
+				$this->plugin->getLogger()->debug("Loaded '" . $design["name"] . "'");
 			}
-			if(count($designManifest) === 0){
+			if (count($designManifest) === 0) {
 				$this->plugin->getLogger()->warning("No designs found in manifest, it is either invalid JSON or empty.");
 			}
 		}
-	}
-
-	/**
-	 * Retrieve the Design for a vehicle.
-	 * @param string $name
-	 * @return Skin|null
-	 */
-	public function getDesign(string $name): ?Skin{
-		foreach($this->designs as $designName => $design){
-			if(strtolower($name) === strtolower($designName)) return $design;
-		}
-		return null;
 	}
 
 	/**
@@ -90,9 +80,9 @@ class DesignFactory{
 	 * @return string|null RGBA Bytes to use.
 	 * @throws Exception
 	 */
-	public function readDesignFile(string $path): ?string{
+	public function readDesignFile(string $path): ?string {
 		$type = pathinfo($path, PATHINFO_EXTENSION);
-		if($type === "png"){
+		if ($type === "png") {
 			/*if(file_exists(rtrim($path,"png")."json")){
 				$data = json_decode(file_get_contents($path));
 				$data = base64_decode($data->data);
@@ -107,7 +97,7 @@ class DesignFactory{
 			for ($y = 0; $y < imagesy($img); $y++) {
 				for ($x = 0; $x < imagesx($img); $x++) {
 					$rgba = @imagecolorat($img, $x, $y);
-					$a = chr(((~((int)($rgba >> 24))) << 1) & 0xff);
+					$a = chr(((~((int) ($rgba >> 24))) << 1) & 0xff);
 					$r = chr(($rgba >> 16) & 0xff);
 					$g = chr(($rgba >> 8) & 0xff);
 					$b = chr($rgba & 0xff);
@@ -126,7 +116,15 @@ class DesignFactory{
 		} else throw new Exception("Unknown data type ${type} received.");
 	}
 
-	public static function getInstance() : self{
-		return self::$instance;
+	/**
+	 * Retrieve the Design for a vehicle.
+	 * @param string $name
+	 * @return Skin|null
+	 */
+	public function getDesign(string $name): ?Skin {
+		foreach ($this->designs as $designName => $design) {
+			if (strtolower($name) === strtolower($designName)) return $design;
+		}
+		return null;
 	}
 }
